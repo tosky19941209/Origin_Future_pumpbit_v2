@@ -203,5 +203,43 @@ describe("OrderBook", function () {
                 )
 
         })
+
+        it("Get decreaseOrder list from chain", async () => {
+            const { market, orderBook, otherAccount1 } = await loadFixture(deployFixture)
+            const tx = await orderBook
+                .connect(otherAccount1)
+                .createTakeProfitAndStopLossOrders(
+                    market,
+                    SIDE_LONG,
+                    [2500n, 3000n],
+                    [2500n, 3000n],
+                    [57000n, 58000n],
+                    [58000n, 46000n],
+                    otherAccount1,
+                    { value: 6000n }
+                );
+            const tx2 = await orderBook
+                .connect(otherAccount1)
+                .createTakeProfitAndStopLossOrders(
+                    market,
+                    SIDE_LONG,
+                    [2510n, 3100n],
+                    [2500n, 3000n],
+                    [57000n, 58000n],
+                    [58000n, 46000n],
+                    otherAccount1,
+                    { value: 6000n }
+                );
+
+            const orderList = await orderBook.decreaseOrders(0)
+            console.log("OrderList =>", orderList)
+            const orderList1 = await orderBook.decreaseOrders(2)
+            console.log("OrderList =>", orderList1)
+
+            const _ordersIndexNext = orderBook.ordersIndexNext
+            console.log("OrderIndexNext =>", _ordersIndexNext)
+
+            console.log("Execute fee =>", await orderBook.usd)
+        })
     })
 })
