@@ -2,6 +2,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { SIDE_LONG, SIDE_SHORT } from "./shared/Constants";
+import { extendProvider } from "hardhat/config";
 
 describe("OrderBook", function () {
     async function deployFixture() {
@@ -25,7 +26,7 @@ describe("OrderBook", function () {
         const marketManager = await ethers.deployContract("MockMarketManager");
 
         const OrderBook = await ethers.getContractFactory("OrderBook");
-        const orderBook = await OrderBook.deploy(USD.target, router.target, marketManager.target, 400000000000000);
+        const orderBook = await OrderBook.deploy(USD.target, router.target, marketManager.target, 3000);
         await orderBook.waitForDeployment();
 
         const orderBookWithBadRouter = await OrderBook.deploy(USD.target, gasRouter.target, marketManager.target, 3000);
@@ -135,20 +136,71 @@ describe("OrderBook", function () {
 
 
     describe("DecreaseOrder Test", async () => {
-        it("Create DecreaseOrder", async () => {
+        it("should revert if execution fee is invalid", async () => {
             const {
                 orderBook,
                 market,
                 otherAccount1,
-                otherAccount2,
-                USD,
-                ETH,
-                owner,
-                router,
             } = await loadFixture(deployFixture)
 
-            const usdBalance = await USD.balanceOf(otherAccount1)
-            await expect()
+            await expect(
+                orderBook.connect(otherAccount1).createTakeProfitAndStopLossOrders(
+                    market,
+                    SIDE_LONG,
+                    [2500n, 3000n],
+                    [2500n, 3000n],
+                    [57000n, 58000n],
+                    [58000n, 46000n],
+                    otherAccount1,
+                    { value: 5000 }
+                ))
+                .to.be.revertedWithCustomError(orderBook, "InsufficientExecutionFee")
+                .withArgs(2500n, 3000n)
+        });
+        it("Should pass if execution fee is valid", async () => {
+            const { market, orderBook, otherAccount1 } = await loadFixture(deployFixture)
+            const tx = await orderBook
+                .connect(otherAccount1)
+                .createTakeProfitAndStopLossOrders(
+                    market,
+                    SIDE_LONG,
+                    [2500n, 3000n],
+                    [2500n, 3000n],
+                    [57000n, 58000n],
+                    [58000n, 46000n],
+                    otherAccount1,
+                    { value: 6000n }
+                );
+            await expect(tx).to.changeEtherBalances([orderBook, otherAccount1], ["6000", "-6000"])
+            await expect(tx)
+                .to.emit(orderBook, "DecreaseOrderCreated")
+                .withArgs(
+                    otherAccount1.address,
+                    market,
+                    SIDE_LONG,
+                    2500n,
+                    2500n,
+                    57000n,
+                    true,
+                    58000n,
+                    otherAccount1.address,
+                    3000n,
+                    0
+                )
+                .to.emit(orderBook, "DecreaseOrderCreated")
+                .withArgs(
+                    otherAccount1.address,
+                    market,
+                    SIDE_LONG,
+                    3000n,
+                    3000n,
+                    58000n,
+                    false,
+                    46000n,
+                    otherAccount1.address,
+                    3000n,
+                    1
+                )
 
         })
     })
