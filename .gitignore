@@ -4,23 +4,17 @@
 
 node_modules
 .env
+coverage
+coverage.json
+typechain
+typechain-types
 
 # Hardhat files
-/cache
-/artifacts
-
-# TypeChain files
-/typechain
-/typechain-types
-
-# solidity-coverage files
-/coverage
-/coverage.json
+cache
+artifacts
 
 out
 foundry-out
 forge-cache
-
-ForkTest.t.sol
 
 deployments

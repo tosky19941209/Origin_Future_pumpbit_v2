@@ -1,7 +1,7 @@
-import {loadFixture} from "@nomicfoundation/hardhat-network-helpers";
-import {expect} from "chai";
-import {ethers} from "hardhat";
-import {SIDE_LONG, SIDE_SHORT} from "./shared/Constants";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { expect } from "chai";
+import { ethers } from "hardhat";
+import { SIDE_LONG, SIDE_SHORT } from "./shared/Constants";
 
 describe("OrderBook", function () {
     async function deployFixture() {
@@ -57,7 +57,7 @@ describe("OrderBook", function () {
 
     describe("#updateMinExecutionFee", async () => {
         it("should revert with 'Forbidden' if caller is not gov", async () => {
-            const {orderBook, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, otherAccount1 } = await loadFixture(deployFixture);
             await expect(orderBook.connect(otherAccount1).updateMinExecutionFee(3000n)).to.be.revertedWithCustomError(
                 orderBook,
                 "Forbidden",
@@ -65,7 +65,7 @@ describe("OrderBook", function () {
         });
 
         it("should emit correct event and update params", async () => {
-            const {orderBook} = await loadFixture(deployFixture);
+            const { orderBook } = await loadFixture(deployFixture);
             await expect(orderBook.updateMinExecutionFee(3000n))
                 .to.emit(orderBook, "MinExecutionFeeUpdated")
                 .withArgs(3000n);
@@ -75,14 +75,14 @@ describe("OrderBook", function () {
 
     describe("#updateOrderExecutor", async () => {
         it("should revert with 'Forbidden' if caller is not gov", async () => {
-            const {otherAccount1, orderBook} = await loadFixture(deployFixture);
+            const { otherAccount1, orderBook } = await loadFixture(deployFixture);
             await expect(
                 orderBook.connect(otherAccount1).updateOrderExecutor(otherAccount1.address, true),
             ).to.be.revertedWithCustomError(orderBook, "Forbidden");
         });
 
         it("should emit correct event and update param", async () => {
-            const {orderBook, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, otherAccount1 } = await loadFixture(deployFixture);
 
             await expect(orderBook.updateOrderExecutor(otherAccount1.address, true))
                 .to.emit(orderBook, "OrderExecutorUpdated")
@@ -98,14 +98,14 @@ describe("OrderBook", function () {
 
     describe("#updateExecutionGasLimit", async () => {
         it("should revert with 'Forbidden' if caller is not gov", async () => {
-            const {otherAccount1, orderBook} = await loadFixture(deployFixture);
+            const { otherAccount1, orderBook } = await loadFixture(deployFixture);
             await expect(
                 orderBook.connect(otherAccount1).updateExecutionGasLimit(2000000n),
             ).to.be.revertedWithCustomError(orderBook, "Forbidden");
         });
 
         it("should emit correct event and update param", async () => {
-            const {orderBook} = await loadFixture(deployFixture);
+            const { orderBook } = await loadFixture(deployFixture);
             await orderBook.updateExecutionGasLimit(2000000n);
             expect(await orderBook.executionGasLimit()).to.eq(2000000n);
         });
@@ -113,19 +113,35 @@ describe("OrderBook", function () {
 
     describe("#createIncreaseOrder", async () => {
         it("should revert if insufficient execution fee", async () => {
-            const {orderBook, market, otherAccount1} = await loadFixture(deployFixture);
+            const { owner,
+                otherAccount2,
+                otherAccount1,
+                orderBook,
+                market,
+                USD,
+                ETH,
+            } = await loadFixture(deployFixture);
             // executionFee is insufficient
+
+            console.log("OtherWallet1 => ", await USD.balanceOf(otherAccount1))
+            console.log("OtherWallet2 => ", await USD.balanceOf(otherAccount2))
+            console.log("Owner => ", await USD.balanceOf(owner))
+            
             await expect(
                 orderBook.connect(otherAccount1).createIncreaseOrder(market, SIDE_LONG, 100n, 1n, 1000n, true, 1100n, {
                     value: 2000,
                 }),
             )
-                .to.be.revertedWithCustomError(orderBook, "InsufficientExecutionFee")
-                .withArgs(2000n, 3000n);
+            .to.be.revertedWithCustomError(orderBook, "InsufficientExecutionFee")
+            .withArgs(2000n, 3000n);
+ 
+            console.log("OtherWallet1 => ", await USD.balanceOf(otherAccount1))
+            console.log("OtherWallet2 => ", await USD.balanceOf(otherAccount2))
+            console.log("Owner => ", await USD.balanceOf(owner))
         });
 
         it("should pass", async () => {
-            const {orderBook, market, otherAccount1, USD} = await loadFixture(deployFixture);
+            const { orderBook, market, otherAccount1, USD } = await loadFixture(deployFixture);
             let side = SIDE_LONG;
             for (let i = 0; i < 10; i++) {
                 const tx = orderBook
@@ -159,7 +175,7 @@ describe("OrderBook", function () {
 
     describe("#updateIncreaseOrder", async () => {
         it("should revert with 'Forbidden' if caller is not request owner", async () => {
-            const {orderBook, market, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, otherAccount1 } = await loadFixture(deployFixture);
 
             await orderBook
                 .connect(otherAccount1)
@@ -174,7 +190,7 @@ describe("OrderBook", function () {
         });
 
         it("should pass", async () => {
-            const {orderBook, market, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, otherAccount1 } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
                 .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1100n, {
@@ -191,20 +207,20 @@ describe("OrderBook", function () {
 
     describe("#cancelIncreaseOrder", async () => {
         it("should revert with 'Forbidden' if caller is not request owner", async () => {
-            const {orderBook, market, owner, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, owner, otherAccount1 } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
-                .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1100n, {value: 3000});
-            await expect(orderBook.cancelIncreaseOrder(0n, owner.address)).to.be.revertedWithCustomError(
+                .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1100n, { value: 3000 });
+            await expect(orderBook. (0n, owner.address)).to.be.revertedWithCustomError(
                 orderBook,
                 "Forbidden",
             );
         });
         it("should pass", async () => {
-            const {orderBook, market, USD, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, USD, otherAccount1 } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
-                .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1100n, {value: 3000});
+                .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1100n, { value: 3000 });
             const tx = orderBook.connect(otherAccount1).cancelIncreaseOrder(0n, otherAccount1.address);
             await expect(tx).to.changeEtherBalances([orderBook, otherAccount1], ["-3000", "3000"]);
             await expect(tx).to.changeTokenBalances(USD, [orderBook, otherAccount1], ["-100", "100"]);
@@ -214,12 +230,13 @@ describe("OrderBook", function () {
 
     describe("#executeIncreaseOrder", async () => {
         it("should revert with 'Forbidden' if caller is not order executor", async () => {
-            const {owner, orderBook, market, otherAccount1} = await loadFixture(deployFixture);
+            const { owner, orderBook, market, otherAccount1 } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
                 .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1100n, {
                     value: 3000,
                 });
+                
             await expect(orderBook.executeIncreaseOrder(0n, owner.address)).to.be.revertedWithCustomError(
                 orderBook,
                 "Forbidden",
@@ -227,7 +244,7 @@ describe("OrderBook", function () {
         });
 
         it("should revert if price is not met", async () => {
-            const {owner, orderBook, marketManager, market, otherAccount1} = await loadFixture(deployFixture);
+            const { owner, orderBook, marketManager, market, otherAccount1 } = await loadFixture(deployFixture);
             // 1900n for long, 1800n for short
             await marketManager.setMarketPriceX96(1900n, 1800n);
             // short: use min price
@@ -259,7 +276,7 @@ describe("OrderBook", function () {
         });
 
         it("should revert if trade price is not met", async () => {
-            const {owner, orderBook, marketManager, market, otherAccount1, router} = await loadFixture(deployFixture);
+            const { owner, orderBook, marketManager, market, otherAccount1, router } = await loadFixture(deployFixture);
             await orderBook.updateOrderExecutor(owner.address, true);
             // short when price is higher
             await orderBook
@@ -286,7 +303,7 @@ describe("OrderBook", function () {
         });
 
         it("should revert if market is malformed and will drain all sent gas", async () => {
-            const {owner, marketManager, market, otherAccount1, orderBookWithBadRouter} =
+            const { owner, marketManager, market, otherAccount1, orderBookWithBadRouter } =
                 await loadFixture(deployFixture);
             await orderBookWithBadRouter.updateOrderExecutor(owner.address, true);
             await marketManager.setMarketPriceX96(1900n, 1800n);
@@ -301,7 +318,7 @@ describe("OrderBook", function () {
         });
 
         it("should pass", async () => {
-            const {orderBook, marketManager, market, owner, otherAccount1, USD, router} =
+            const { orderBook, marketManager, market, owner, otherAccount1, USD, router } =
                 await loadFixture(deployFixture);
             await orderBook.updateOrderExecutor(owner.address, true);
             await marketManager.setMarketPriceX96(1900n, 1800n);
@@ -331,7 +348,7 @@ describe("OrderBook", function () {
 
     describe("#createDecreaseOrder", async () => {
         it("should revert if insufficient or incorrect execution fee", async () => {
-            const {orderBook, market, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, otherAccount1 } = await loadFixture(deployFixture);
             // executionFee is insufficient
             await expect(
                 orderBook
@@ -343,7 +360,7 @@ describe("OrderBook", function () {
         });
 
         it("should pass", async () => {
-            const {orderBook, market, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, otherAccount1 } = await loadFixture(deployFixture);
             let side = SIDE_LONG;
             for (let i = 0; i < 10; i++) {
                 const tx = orderBook
@@ -389,7 +406,7 @@ describe("OrderBook", function () {
 
     describe("#updateDecreaseOrder", async () => {
         it("should revert with 'Forbidden' if sender is not request owner", async () => {
-            const {orderBook, market, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, otherAccount1 } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
                 .createDecreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1000n, otherAccount1.address, {
@@ -402,7 +419,7 @@ describe("OrderBook", function () {
         });
 
         it("should pass", async () => {
-            const {orderBook, market, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, otherAccount1 } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
                 .createDecreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1000n, otherAccount1.address, {
@@ -419,7 +436,7 @@ describe("OrderBook", function () {
 
     describe("#cancelDecreaseOrder", async () => {
         it("should revert with 'Forbidden' if caller is not request owner nor order executor", async () => {
-            const {orderBook, market, otherAccount1, otherAccount2} = await loadFixture(deployFixture);
+            const { orderBook, market, otherAccount1, otherAccount2 } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
                 .createDecreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1000n, otherAccount1.address, {
@@ -431,14 +448,14 @@ describe("OrderBook", function () {
         });
 
         it("should revert if order not exists", async () => {
-            const {orderBook, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, otherAccount1 } = await loadFixture(deployFixture);
             await expect(orderBook.cancelDecreaseOrder(0n, otherAccount1.address))
                 .to.be.revertedWithCustomError(orderBook, "OrderNotExists")
                 .withArgs(0n);
         });
 
         it("should pass", async () => {
-            const {orderBook, market, otherAccount1, owner} = await loadFixture(deployFixture);
+            const { orderBook, market, otherAccount1, owner } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
                 .createDecreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1000n, otherAccount1.address, {
@@ -468,7 +485,7 @@ describe("OrderBook", function () {
 
     describe("#executeDecreaseOrder", async () => {
         it("should revert if trigger price is not met", async () => {
-            const {orderBook, marketManager, market, owner, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, marketManager, market, owner, otherAccount1 } = await loadFixture(deployFixture);
             expect(await orderBook.updateOrderExecutor(owner.address, true));
             // 1. long, take-profit order
             await orderBook
@@ -519,7 +536,7 @@ describe("OrderBook", function () {
         });
 
         it("should revert if trade price is not met", async () => {
-            const {orderBook, marketManager, market, owner, otherAccount1, router} = await loadFixture(deployFixture);
+            const { orderBook, marketManager, market, owner, otherAccount1, router } = await loadFixture(deployFixture);
             expect(await orderBook.updateOrderExecutor(owner.address, true));
             // 1. long, take-profit order
             await orderBook
@@ -597,7 +614,7 @@ describe("OrderBook", function () {
 
     describe("#createTakeProfitAndStopLossOrders", async () => {
         it("should revert if execution fee is invalid", async () => {
-            const {orderBook, market, owner} = await loadFixture(deployFixture);
+            const { orderBook, market, owner } = await loadFixture(deployFixture);
             // fee0 is insufficient
             await expect(
                 orderBook.createTakeProfitAndStopLossOrders(
@@ -608,7 +625,7 @@ describe("OrderBook", function () {
                     [2000n, 2000n],
                     [2000n, 2000n],
                     owner.address,
-                    {value: 5000n},
+                    { value: 5000n },
                 ),
             )
                 .to.be.revertedWithCustomError(orderBook, "InsufficientExecutionFee")
@@ -623,7 +640,7 @@ describe("OrderBook", function () {
                     [2000n, 2000n],
                     [2000n, 2000n],
                     owner.address,
-                    {value: 5001n},
+                    { value: 5001n },
                 ),
             )
                 .to.be.revertedWithCustomError(orderBook, "InsufficientExecutionFee")
@@ -638,7 +655,7 @@ describe("OrderBook", function () {
                     [2000n, 2000n],
                     [2000n, 2000n],
                     owner.address,
-                    {value: 5003n},
+                    { value: 5003n },
                 ),
             )
                 .to.be.revertedWithCustomError(orderBook, "InsufficientExecutionFee")
@@ -652,7 +669,7 @@ describe("OrderBook", function () {
                     [2000n, 2000n],
                     [2000n, 2000n],
                     owner.address,
-                    {value: 1n},
+                    { value: 1n },
                 ),
             )
                 .to.be.revertedWithCustomError(orderBook, "InsufficientExecutionFee")
@@ -660,7 +677,7 @@ describe("OrderBook", function () {
         });
 
         it("should pass", async () => {
-            const {orderBook, market, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, otherAccount1 } = await loadFixture(deployFixture);
 
             for (let i = 0; i < 10; i++) {
                 const tx = orderBook
@@ -673,7 +690,7 @@ describe("OrderBook", function () {
                         [2000n, 2500n],
                         [2000n, 2500n],
                         otherAccount1.address,
-                        {value: 6000n},
+                        { value: 6000n },
                     );
                 await expect(tx).to.changeEtherBalances([orderBook, otherAccount1], ["6000", "-6000"]);
                 await expect(tx)
@@ -741,17 +758,17 @@ describe("OrderBook", function () {
 
     describe("#cancelIncreaseOrdersBatch", async () => {
         it("should revert if order not exists", async () => {
-            const {orderBook} = await loadFixture(deployFixture);
+            const { orderBook } = await loadFixture(deployFixture);
             await expect(orderBook.cancelIncreaseOrdersBatch([0n]))
                 .to.be.revertedWithCustomError(orderBook, "OrderNotExists")
                 .withArgs(0n);
         });
 
         it("should revert with 'Forbidden' if caller is not request owner", async () => {
-            const {orderBook, market, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, otherAccount1 } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
-                .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1100n, {value: 3000});
+                .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1100n, { value: 3000 });
             await expect(orderBook.cancelIncreaseOrdersBatch([0n])).to.be.revertedWithCustomError(
                 orderBook,
                 "Forbidden",
@@ -759,13 +776,13 @@ describe("OrderBook", function () {
         });
 
         it("should pass", async () => {
-            const {orderBook, market, USD, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, USD, otherAccount1 } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
-                .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1100n, {value: 3000});
+                .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1100n, { value: 3000 });
             await orderBook
                 .connect(otherAccount1)
-                .createIncreaseOrder(market, SIDE_LONG, 200n, 200n, 2000n, true, 2100n, {value: 3000});
+                .createIncreaseOrder(market, SIDE_LONG, 200n, 200n, 2000n, true, 2100n, { value: 3000 });
             const tx = orderBook.connect(otherAccount1).cancelIncreaseOrdersBatch([0n, 1n]);
             await expect(tx).to.changeEtherBalances([orderBook, otherAccount1], ["-6000", "6000"]);
             await expect(tx).to.changeTokenBalances(USD, [orderBook, otherAccount1], ["-300", "300"]);
@@ -777,14 +794,14 @@ describe("OrderBook", function () {
 
     describe("#cancelDecreaseOrdersBatch", async () => {
         it("should revert if order not exists", async () => {
-            const {orderBook} = await loadFixture(deployFixture);
+            const { orderBook } = await loadFixture(deployFixture);
             await expect(orderBook.cancelDecreaseOrdersBatch([0n]))
                 .to.be.revertedWithCustomError(orderBook, "OrderNotExists")
                 .withArgs(0n);
         });
 
         it("should revert with 'Forbidden' if caller is not request owner nor order executor", async () => {
-            const {orderBook, market, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, otherAccount1 } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
                 .createDecreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1000n, otherAccount1.address, {
@@ -797,7 +814,7 @@ describe("OrderBook", function () {
         });
 
         it("should pass", async () => {
-            const {orderBook, market, USD, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, USD, otherAccount1 } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
                 .createDecreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1000n, otherAccount1.address, {
@@ -818,14 +835,14 @@ describe("OrderBook", function () {
 
     describe("#cancelOrdersBatch", async () => {
         it("should revert if order not exists", async () => {
-            const {orderBook} = await loadFixture(deployFixture);
+            const { orderBook } = await loadFixture(deployFixture);
             await expect(orderBook.cancelOrdersBatch([0n], [1n]))
                 .to.be.revertedWithCustomError(orderBook, "OrderNotExists")
                 .withArgs(0n);
         });
 
         it("should revert with 'Forbidden' if caller is not request owner nor order executor", async () => {
-            const {orderBook, market, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, otherAccount1 } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
                 .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1000n, {
@@ -840,7 +857,7 @@ describe("OrderBook", function () {
         });
 
         it("should pass", async () => {
-            const {orderBook, market, USD, otherAccount1} = await loadFixture(deployFixture);
+            const { orderBook, market, USD, otherAccount1 } = await loadFixture(deployFixture);
             await orderBook
                 .connect(otherAccount1)
                 .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1000n, {
@@ -848,10 +865,10 @@ describe("OrderBook", function () {
                 });
             await orderBook
                 .connect(otherAccount1)
-                .createIncreaseOrder(market, SIDE_SHORT, 200n, 200n, 2000n, true, 2000n, {value: 3000});
+                .createIncreaseOrder(market, SIDE_SHORT, 200n, 200n, 2000n, true, 2000n, { value: 3000 });
             await orderBook
                 .connect(otherAccount1)
-                .createIncreaseOrder(market, SIDE_LONG, 300n, 300n, 3000n, true, 3100n, {value: 3000});
+                .createIncreaseOrder(market, SIDE_LONG, 300n, 300n, 3000n, true, 3100n, { value: 3000 });
             await orderBook
                 .connect(otherAccount1)
                 .createDecreaseOrder(market, SIDE_SHORT, 500n, 500n, 5000n, true, 2000n, otherAccount1.address, {

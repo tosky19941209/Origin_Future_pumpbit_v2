@@ -151,7 +151,8 @@ contract MixedExecutor is Multicall, Governable {
                 priceX96: _packedValues[i].unpackUint160(24)
             });
         }
-        priceFeed.setPriceX96s(marketPrices, _timestamp);
+        // priceFeed.setPriceX96s(marketPrices, _timestamp);
+        priceFeed.setPriceX96s(marketPrices);
     }
 
     /// @notice Execute multiple increase liquidity position requests
