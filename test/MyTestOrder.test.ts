@@ -136,6 +136,19 @@ describe("OrderBook", function () {
 
     describe("DecreaseOrder Test", async () => {
         it("Create DecreaseOrder", async () => {
+            const {
+                orderBook,
+                market,
+                otherAccount1,
+                otherAccount2,
+                USD,
+                ETH,
+                owner,
+                router,
+            } = await loadFixture(deployFixture)
+
+            const usdBalance = await USD.balanceOf(otherAccount1)
+            await expect()
 
         })
     })

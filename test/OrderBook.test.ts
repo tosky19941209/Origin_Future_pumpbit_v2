@@ -126,15 +126,15 @@ describe("OrderBook", function () {
             console.log("OtherWallet1 => ", await USD.balanceOf(otherAccount1))
             console.log("OtherWallet2 => ", await USD.balanceOf(otherAccount2))
             console.log("Owner => ", await USD.balanceOf(owner))
-            
+
             await expect(
                 orderBook.connect(otherAccount1).createIncreaseOrder(market, SIDE_LONG, 100n, 1n, 1000n, true, 1100n, {
                     value: 2000,
                 }),
             )
-            .to.be.revertedWithCustomError(orderBook, "InsufficientExecutionFee")
-            .withArgs(2000n, 3000n);
- 
+                .to.be.revertedWithCustomError(orderBook, "InsufficientExecutionFee")
+                .withArgs(2000n, 3000n);
+
             console.log("OtherWallet1 => ", await USD.balanceOf(otherAccount1))
             console.log("OtherWallet2 => ", await USD.balanceOf(otherAccount2))
             console.log("Owner => ", await USD.balanceOf(owner))
@@ -211,7 +211,7 @@ describe("OrderBook", function () {
             await orderBook
                 .connect(otherAccount1)
                 .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1100n, { value: 3000 });
-            await expect(orderBook. (0n, owner.address)).to.be.revertedWithCustomError(
+            await expect(orderBook.executeIncreaseOrder(0n, owner.address)).to.be.revertedWithCustomError(
                 orderBook,
                 "Forbidden",
             );
@@ -236,7 +236,7 @@ describe("OrderBook", function () {
                 .createIncreaseOrder(market, SIDE_LONG, 100n, 100n, 1000n, true, 1100n, {
                     value: 3000,
                 });
-                
+
             await expect(orderBook.executeIncreaseOrder(0n, owner.address)).to.be.revertedWithCustomError(
                 orderBook,
                 "Forbidden",
